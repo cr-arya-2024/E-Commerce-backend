@@ -2,8 +2,8 @@ import userModel from "../models/userModel.js"
 import validator from 'validator'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-const creatToken=(id)=>{
-    return jwt.sign({id},process.env.JWT_SECRET)
+const creatToken=(payload)=>{
+    return jwt.sign(payload, process.env.JWT_SECRET)
 }
 // Route for user login
 const loginUser=async(req,res)=>{
@@ -14,7 +14,7 @@ try {
     //comparing the password  database and entered detail
     const matchPassword=await bcrypt.compare(password,user.password)
     if(matchPassword){
-        const token=creatToken(user._id)
+        const token=creatToken({ id: user._id })
      res.json({success:true,token})
     }else{
          res.json({success:false,message:"check the password once"})
@@ -51,6 +51,19 @@ res.json({success:true,token})
 }
 //route for admin login
 const adminLogin=async(req,res)=>{
-
+    try {
+        const {email,password}=req.body
+        const providedEmail = (email || '').trim().toLowerCase()
+        const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase()
+        const adminPassword = (process.env.ADMIN_PASSWORD || '')
+        if(providedEmail===adminEmail && password===adminPassword){
+            const token = creatToken({ id: "admin", email: adminEmail, role: "admin" })
+            return res.json({success:true,token})
+        }
+        return res.json({success:false,message:"Invalid admin credentials"})
+    } catch (error) {
+        console.log(error);
+        res.json({success:false,message:error.message})
+    }
 }
 export {loginUser,registerUser,adminLogin}
